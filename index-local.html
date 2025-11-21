@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Plugin Kinbox</title>
+  <script type="text/javascript" src="https://andrody.github.io/kinbox-lib/kinboxjs.js"></script>
+
+  <style>
+    body {
+      padding: 20px;
+      font-family: sans-serif;
+      text-align: center;
+      max-width: 400px;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      margin-top: 50px;
+    }
+
+    .btn-lead {
+      background-color: #2fc6f6;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .btn-test {
+      background-color: #ff9800;
+    }
+
+    /* Laranja para diferenciar */
+
+    #status-msg {
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      min-height: 20px;
+    }
+
+    .success {
+      color: #28a745;
+    }
+
+    .error {
+      color: #dc3545;
+    }
+
+    .info {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h3>Simulador de Plugin</h3>
+  <div id="info-msg" class="info">Status: Aguardando...</div>
+
+  <button id="btn-criar-lead" class="btn-lead" onclick="enviarParaN8N()" disabled>
+    <span>🚀</span> Gerar Lead Bitrix
+  </button>
+
+  <hr>
+
+  <button class="btn-lead btn-test" onclick="simularKinbox()">
+    <span>🧪</span> SIMULAR DADOS (TESTE LOCAL)
+  </button>
+
+  <div id="status-msg"></div>
+
+  <script>
+    // Variável global
+    var currentConversation = null;
+
+    // URL do seu Webhook n8n
+    const webhookUrl = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
+
+    // --- LÓGICA DO KINBOX (Só funciona quando estiver lá dentro) ---
+    if (typeof Kinbox !== 'undefined') {
+      Kinbox.on("conversation", function (data) {
+        currentConversation = data;
+        document.getElementById("btn-criar-lead").disabled = false;
+        document.getElementById("info-msg").innerText = "Cliente Kinbox: " + data.contact.name;
+      });
+    }
+
+    function simularKinbox() {
+      console.log("Iniciando simulação...");
+
+      const fakeData = {
+        contact: {
+          name: "Teste Local da Silva",
+          phone: "5511999998888",
+          email: "teste.local@email.com",
+          id: "99999"
+        }
+      };
+
+      currentConversation = fakeData;
+
+      document.getElementById("info-msg").innerText = "Simulação: " + fakeData.contact.name;
+      document.getElementById("btn-criar-lead").disabled = false;
+
+      enviarParaN8N();
+    }
+
+    async function enviarParaN8N() {
+      if (!currentConversation) {
+        alert("Nenhum dado carregado!");
+        return;
+      }
+
+      const btn = document.getElementById('btn-criar-lead');
+      const msgDiv = document.getElementById('status-msg');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Processando...';
+      msgDiv.innerText = '';
+
+      const payload = {
+        contact: {
+          name: currentConversation.contact.name,
+          phone: currentConversation.contact.phone,
+          email: currentConversation.contact.email,
+          id: currentConversation.contact.id
+        },
+        conversation: {
+          name: currentConversation.contact.name,
+          phone: currentConversation.contact.phone,
+          lastMessage: { status: "plugin_click" }
+        }
+      };
+
+      console.log("Enviando payload corrigido:", payload);
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          msgDiv.innerText = '✅ Lead Criado!';
+          msgDiv.className = 'success';
+          btn.innerHTML = '<span>✅</span> Sucesso';
+        } else {
+          throw new Error('Erro API: ' + response.status);
+        }
+
+      } catch (error) {
+        console.error(error);
+        msgDiv.innerText = '❌ Falha: ' + error.message;
+        msgDiv.className = 'error';
+        btn.innerHTML = '<span>⚠️</span> Tentar Novamente';
+        btn.disabled = false;
+      }
+    }
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <script type="text/javascript" src="https://andrody.github.io/kinbox-lib/kinboxjs.js"></script>
+  
+  <style>
+    body { margin: 0; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: transparent; }
+
+    .btn-sysled {
+      background-color: #2684ff;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-sysled:hover { background-color: #1a6fd8; }
+    .btn-sysled:disabled { background-color: #b0c4de; cursor: not-allowed; box-shadow: none; }
+
+    #status-msg { margin-top: 8px; font-size: 12px; text-align: center; font-weight: 500; min-height: 18px;}
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+    .info { color: #6c757d; font-size: 11px; text-align: center; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+  <div id="info-msg" class="info">Carregando...</div>
+
+  <button id="btn-criar-lead" class="btn-sysled" onclick="enviarParaN8N()" disabled>
+    Criar Lead no Bitrix
+  </button>
+  
+  <div id="status-msg"></div>
+
+<script>
+  const webhookUrl = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
+  
+  var rawConversationData = null;
+
+  Kinbox.on("conversation", function (data) {
+    console.log("Dados Brutos recebidos do Kinbox:", data);
+    rawConversationData = data;
+    
+    const btn = document.getElementById("btn-criar-lead");
+    const info = document.getElementById("info-msg");
+    
+    if (data && data.contact) {
+        btn.disabled = false;
+        btn.innerHTML = "Criar Lead no Bitrix"; 
+        info.innerText = ""; 
+    }
+  });
+
+  Kinbox.on("no_conversation", function (data) {
+    rawConversationData = null;
+    document.getElementById("btn-criar-lead").disabled = true;
+    document.getElementById("info-msg").innerText = "Selecione uma conversa";
+  });
+
+  async function enviarParaN8N() {
+    if (!rawConversationData) return;
+
+    const btn = document.getElementById('btn-criar-lead');
+    const msgDiv = document.getElementById('status-msg');
+    
+    btn.disabled = true;
+    btn.innerHTML = 'Processando...'; 
+    msgDiv.innerText = '';
+
+    const payload = {
+        body: rawConversationData,
+        origin: "plugin_sysled_style" 
+    };
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        msgDiv.innerText = '✅ Lead criado com sucesso!';
+        msgDiv.className = 'success';
+        btn.innerHTML = '✅ Sucesso';
+      } else {
+        throw new Error('Erro no servidor');
+      }
+
+    } catch (error) {
+      console.error(error);
+      msgDiv.innerText = '❌ Falha ao criar lead';
+      msgDiv.className = 'error';
+      btn.innerHTML = 'Tentar Novamente';
+      btn.disabled = false;
+    } finally {
+      if (msgDiv.className === 'success') {
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = 'Criar Lead no Bitrix';
+            msgDiv.innerText = '';
+        }, 3000);
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
