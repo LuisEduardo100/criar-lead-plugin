@@ -37,7 +37,11 @@
   <button id="btn-criar-lead" class="btn-sysled" onclick="enviarParaN8N()" disabled>
     Criar Lead no Bitrix
   </button>
-  
+
+  <button id="btn-delete-lead" class="btn-sysled" onclick="enviarParaN8N()" disabled>
+    Deletar Lead no Bitrix
+  </button>
+
   <div id="status-msg"></div>
 
 <script>
@@ -46,7 +50,6 @@
   var rawConversationData = null;
 
   Kinbox.on("conversation", function (data) {
-    console.log("Dados Brutos recebidos do Kinbox:", data);
     rawConversationData = data;
     
     const btn = document.getElementById("btn-criar-lead");
