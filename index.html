@@ -7,10 +7,8 @@
   <style>
     body { margin: 0; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: transparent; }
 
-    /* Estilo do botão Criar (Azul Sysled) */
-    .btn-sysled {
-      background-color: #2684ff;
-      color: #ffffff;
+    /* Classe base para botões */
+    .btn {
       border: none;
       border-radius: 6px;
       padding: 12px 16px;
@@ -21,28 +19,19 @@
       transition: background-color 0.2s;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin-bottom: 10px; /* Espaço entre os botões */
+      margin-bottom: 10px;
     }
-    .btn-sysled:hover { background-color: #1a6fd8; }
-    .btn-sysled:disabled { background-color: #b0c4de; cursor: not-allowed; box-shadow: none; }
+    .btn:disabled { background-color: #b0c4de; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
 
-    /* Estilo do botão Descartar (Vermelho/Junk) */
-    .btn-junk {
-      background-color: #dc3545; /* Vermelho Perigo */
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      padding: 12px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      width: 100%;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
+    /* Cores Específicas */
+    .btn-criar { background-color: #2684ff; color: #ffffff; } /* Azul */
+    .btn-criar:hover { background-color: #1a6fd8; }
+
+    .btn-negocio { background-color: #28a745; color: #ffffff; } /* Verde Sucesso */
+    .btn-negocio:hover { background-color: #218838; }
+
+    .btn-junk { background-color: #dc3545; color: #ffffff; } /* Vermelho Perigo */
     .btn-junk:hover { background-color: #c82333; }
-    .btn-junk:disabled { background-color: #e2aeb3; cursor: not-allowed; box-shadow: none; }
 
     #status-msg { margin-top: 10px; font-size: 12px; text-align: center; font-weight: 500; min-height: 18px;}
     .success { color: #28a745; }
@@ -54,11 +43,15 @@
 
   <div id="info-msg" class="info">Carregando...</div>
 
-  <button id="btn-criar-lead" class="btn-sysled" onclick="enviarParaN8NParaCriar()" disabled>
+  <button id="btn-criar-lead" class="btn btn-criar" onclick="enviarParaN8NParaCriar()" disabled>
     ✅ Criar Lead no Bitrix
   </button>
 
-  <button id="btn-junk-lead" class="btn-junk" onclick="enviarParaN8NParaDescartar()" disabled>
+  <button id="btn-negocio-lead" class="btn btn-negocio" onclick="enviarParaN8NParaNegocio()" disabled>
+    🚀 Converter em Negócio
+  </button>
+
+  <button id="btn-junk-lead" class="btn btn-junk" onclick="enviarParaN8NParaDescartar()" disabled>
     🗑️ Descartar (Junk)
   </button>
   
@@ -67,72 +60,88 @@
 <script>
   // --- CONFIGURAÇÃO ---
   const webhookParaCriar = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
-  const webhookParaDescartar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
+  // Este webhook agora serve tanto para JUNK quanto para NEGÓCIO
+  const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
   
   var rawConversationData = null;
 
   // --- SDK KINBOX ---
   Kinbox.on("conversation", function (data) {
-    console.log("Dados Kinbox Recebidos:", data);
     rawConversationData = data;
-    
-    // Elementos da tela
-    const btnCriar = document.getElementById("btn-criar-lead");
-    const btnJunk = document.getElementById("btn-junk-lead");
-    const info = document.getElementById("info-msg");
-    const msgDiv = document.getElementById("status-msg");
-
-    if (data && data.contact) {
-        // Habilita ambos os botões
-        btnCriar.disabled = false;
-        btnJunk.disabled = false;
-        
-        // Reseta textos
-        btnCriar.innerHTML = "✅ Criar Lead no Bitrix";
-        btnJunk.innerHTML = "🗑️ Descartar (Junk)";
-        info.innerText = "";
-        msgDiv.innerText = "";
-    }
+    atualizarEstadoBotoes(true, data);
   });
 
   Kinbox.on("no_conversation", function (data) {
     rawConversationData = null;
-    document.getElementById("btn-criar-lead").disabled = true;
-    document.getElementById("btn-junk-lead").disabled = true;
-    document.getElementById("info-msg").innerText = "Selecione uma conversa";
+    atualizarEstadoBotoes(false, null);
   });
 
-  // --- FUNÇÃO 1: CRIAR LEAD ---
+  function atualizarEstadoBotoes(ativo, data) {
+    const btnCriar = document.getElementById("btn-criar-lead");
+    const btnNegocio = document.getElementById("btn-negocio-lead");
+    const btnJunk = document.getElementById("btn-junk-lead");
+    const info = document.getElementById("info-msg");
+    const msgDiv = document.getElementById("status-msg");
+
+    if (ativo && data && data.contact) {
+        // Habilita todos
+        btnCriar.disabled = false;
+        btnNegocio.disabled = false;
+        btnJunk.disabled = false;
+        
+        // Reseta textos
+        btnCriar.innerHTML = "✅ Criar Lead no Bitrix";
+        btnNegocio.innerHTML = "🚀 Converter em Negócio";
+        btnJunk.innerHTML = "🗑️ Descartar (Junk)";
+        info.innerText = "";
+        msgDiv.innerText = "";
+    } else {
+        // Desabilita todos
+        btnCriar.disabled = true;
+        btnNegocio.disabled = true;
+        btnJunk.disabled = true;
+        info.innerText = "Selecione uma conversa";
+    }
+  }
+
+  // --- FUNÇÕES DE DISPARO ---
   async function enviarParaN8NParaCriar() {
     if (!rawConversationData) return;
     executarEnvio('criar');
   }
 
-  // --- FUNÇÃO 2: DESCARTAR LEAD ---
+  async function enviarParaN8NParaNegocio() {
+    if (!rawConversationData) return;
+    executarEnvio('negocio');
+  }
+
   async function enviarParaN8NParaDescartar() {
     if (!rawConversationData) return;
     executarEnvio('descartar');
   }
 
-  // --- FUNÇÃO GENÉRICA DE ENVIO (Para evitar repetição de código) ---
+  // --- FUNÇÃO GENÉRICA DE ENVIO ---
   async function executarEnvio(acao) {
     const btnCriar = document.getElementById('btn-criar-lead');
+    const btnNegocio = document.getElementById('btn-negocio-lead');
     const btnJunk = document.getElementById('btn-junk-lead');
     const msgDiv = document.getElementById('status-msg');
 
-    // Define qual webhook e qual botão está sendo "focado"
-    const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaDescartar;
+    // Lógica de URL: 'criar' vai para um, o resto (negocio/descartar) vai para o de atualização
+    const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
     
-    // Bloqueia AMBOS durante o processamento
+    // Bloqueia TODOS durante o processamento
     btnCriar.disabled = true;
+    btnNegocio.disabled = true;
     btnJunk.disabled = true;
+
     msgDiv.innerText = 'Processando...';
     msgDiv.className = '';
 
     const payload = {
         body: rawConversationData,
         origin: "plugin_sysled_buttons",
-        action: acao // 'criar' ou 'descartar' - útil para debug no n8n
+        action: acao // Pode ser: 'criar', 'negocio' ou 'descartar'
     };
 
     try {
@@ -146,9 +155,12 @@
         if (acao === 'criar') {
             msgDiv.innerText = '✅ Lead criado com sucesso!';
             msgDiv.className = 'success';
+        } else if (acao === 'negocio') {
+            msgDiv.innerText = '🚀 Convertido em Negócio!';
+            msgDiv.className = 'success';
         } else {
             msgDiv.innerText = '🗑️ Lead marcado como Junk!';
-            msgDiv.className = 'error'; // Usa a cor vermelha para feedback visual de descarte
+            msgDiv.className = 'error';
         }
       } else {
         throw new Error('Erro no servidor');
@@ -161,12 +173,11 @@
     } finally {
       // Reabilita os botões após 3 segundos
       setTimeout(() => {
-        // Só reabilita se ainda tiver conversa selecionada
         if (rawConversationData) {
-            btnCriar.disabled = false;
-            btnJunk.disabled = false;
-            btnCriar.innerHTML = '✅ Criar Lead no Bitrix';
-            btnJunk.innerHTML = '🗑️ Descartar (Junk)';
+            // Chama a função centralizada para garantir que tudo volte ao normal
+            atualizarEstadoBotoes(true, rawConversationData);
+            // Limpa msg apenas se foi sucesso, se foi erro deixa na tela um pouco mais
+            // Mas aqui vamos limpar para manter o padrão
             msgDiv.innerText = '';
         }
       }, 3000);
