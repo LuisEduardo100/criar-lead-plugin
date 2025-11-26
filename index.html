@@ -33,9 +33,12 @@
     .btn-junk { background-color: #dc3545; color: #ffffff; } /* Vermelho Perigo */
     .btn-junk:hover { background-color: #c82333; }
 
-    #status-msg { margin-top: 10px; font-size: 12px; text-align: center; font-weight: 500; min-height: 18px;}
+    #status-msg { margin-top: 10px; font-size: 13px; text-align: center; font-weight: 500; min-height: 18px; line-height: 1.4; }
+    #status-msg a { text-decoration: underline; font-weight: bold; cursor: pointer; }
+    
     .success { color: #28a745; }
     .error { color: #dc3545; }
+    .warning { color: #d39e00; } /* Amarelo Escuro para alertas */
     .info { color: #6c757d; font-size: 11px; text-align: center; margin-bottom: 5px; }
   </style>
 </head>
@@ -60,8 +63,8 @@
 <script>
   // --- CONFIGURAÇÃO ---
   const webhookParaCriar = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
-  // Este webhook agora serve tanto para JUNK quanto para NEGÓCIO
   const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
+  const bitrixBaseUrl = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/'; // URL Base do seu Bitrix
   
   var rawConversationData = null;
 
@@ -84,19 +87,16 @@
     const msgDiv = document.getElementById("status-msg");
 
     if (ativo && data && data.contact) {
-        // Habilita todos
         btnCriar.disabled = false;
         btnNegocio.disabled = false;
         btnJunk.disabled = false;
         
-        // Reseta textos
         btnCriar.innerHTML = "✅ Criar Lead no Bitrix";
         btnNegocio.innerHTML = "🚀 Converter em Negócio";
         btnJunk.innerHTML = "🗑️ Descartar (Junk)";
         info.innerText = "";
-        msgDiv.innerText = "";
+        // Não limpamos msgDiv aqui para não sumir mensagens importantes de resposta
     } else {
-        // Desabilita todos
         btnCriar.disabled = true;
         btnNegocio.disabled = true;
         btnJunk.disabled = true;
@@ -127,10 +127,9 @@
     const btnJunk = document.getElementById('btn-junk-lead');
     const msgDiv = document.getElementById('status-msg');
 
-    // Lógica de URL: 'criar' vai para um, o resto (negocio/descartar) vai para o de atualização
     const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
     
-    // Bloqueia TODOS durante o processamento
+    // Bloqueia
     btnCriar.disabled = true;
     btnNegocio.disabled = true;
     btnJunk.disabled = true;
@@ -141,7 +140,7 @@
     const payload = {
         body: rawConversationData,
         origin: "plugin_sysled_buttons",
-        action: acao // Pode ser: 'criar', 'negocio' ou 'descartar'
+        action: acao 
     };
 
     try {
@@ -151,16 +150,32 @@
         body: JSON.stringify(payload)
       });
 
+      // Importante: Lemos o JSON da resposta do n8n
+      const result = await response.json();
+
       if (response.ok) {
         if (acao === 'criar') {
-            msgDiv.innerText = '✅ Lead criado com sucesso!';
-            msgDiv.className = 'success';
+            
+            // Verifica a flag que configuramos no n8n
+            if (result.lead_exists) {
+                const linkLead = result.lead_id ? `${bitrixBaseUrl}${result.lead_id}/` : '#';
+                msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
+                msgDiv.className = 'warning';
+                resetarBotoesComDelay(10000); // 10 segundos para dar tempo de clicar
+            } else {
+                msgDiv.innerText = '✅ Lead criado com sucesso!';
+                msgDiv.className = 'success';
+                resetarBotoesComDelay(3000);
+            }
+
         } else if (acao === 'negocio') {
             msgDiv.innerText = '🚀 Convertido em Negócio!';
             msgDiv.className = 'success';
+            resetarBotoesComDelay(3000);
         } else {
             msgDiv.innerText = '🗑️ Lead marcado como Junk!';
             msgDiv.className = 'error';
+            resetarBotoesComDelay(3000);
         }
       } else {
         throw new Error('Erro no servidor');
@@ -170,18 +185,17 @@
       console.error(error);
       msgDiv.innerText = '❌ Falha na requisição';
       msgDiv.className = 'error';
-    } finally {
-      // Reabilita os botões após 3 segundos
+      resetarBotoesComDelay(3000);
+    } 
+  }
+
+  function resetarBotoesComDelay(tempo) {
       setTimeout(() => {
         if (rawConversationData) {
-            // Chama a função centralizada para garantir que tudo volte ao normal
             atualizarEstadoBotoes(true, rawConversationData);
-            // Limpa msg apenas se foi sucesso, se foi erro deixa na tela um pouco mais
-            // Mas aqui vamos limpar para manter o padrão
-            msgDiv.innerText = '';
+            document.getElementById('status-msg').innerText = ''; // Limpa msg
         }
-      }, 3000);
-    }
+      }, tempo);
   }
 </script>
 
