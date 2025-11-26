@@ -150,18 +150,25 @@
         body: JSON.stringify(payload)
       });
 
-      // Importante: Lemos o JSON da resposta do n8n
-      const result = await response.json();
+      const textResponse = await response.text();
+      let result;
+      
+      try {
+          result = JSON.parse(textResponse);
+      } catch (e) {
+          console.error("Erro ao converter resposta do n8n em JSON:", textResponse);
+          throw new Error("O n8n não retornou um JSON válido. Verifique o console.");
+      }
+      // -------------------------------------------------------------
 
       if (response.ok) {
         if (acao === 'criar') {
             
-            // Verifica a flag que configuramos no n8n
             if (result.lead_exists) {
                 const linkLead = result.lead_id ? `${bitrixBaseUrl}${result.lead_id}/` : '#';
                 msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
                 msgDiv.className = 'warning';
-                resetarBotoesComDelay(10000); // 10 segundos para dar tempo de clicar
+                resetarBotoesComDelay(10000); 
             } else {
                 msgDiv.innerText = '✅ Lead criado com sucesso!';
                 msgDiv.className = 'success';
@@ -178,15 +185,16 @@
             resetarBotoesComDelay(3000);
         }
       } else {
-        throw new Error('Erro no servidor');
+        throw new Error('Erro no servidor: ' + textResponse);
       }
 
     } catch (error) {
-      console.error(error);
-      msgDiv.innerText = '❌ Falha na requisição';
+      console.error("ERRO COMPLETO:", error);
+      // Mostra uma mensagem mais útil
+      msgDiv.innerText = '❌ Falha: Verifique o Console (F12)';
       msgDiv.className = 'error';
-      resetarBotoesComDelay(3000);
-    } 
+      resetarBotoesComDelay(5000);
+    }
   }
 
   function resetarBotoesComDelay(tempo) {
