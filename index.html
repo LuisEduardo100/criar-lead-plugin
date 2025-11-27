@@ -214,12 +214,12 @@
           body: JSON.stringify(payload)
         });
 
-      if (!response.ok) {
-        throw new Error("Erro na resposta")
-      }
-      
+        if (!response.ok) {
+          throw new Error("Erro na resposta")
+        }
+
         const res = await response.json()
-       console.log("Resposta n8n:", jsonResponse)
+        console.log("Resposta n8n:", jsonResponse)
 
         // -------------------------------------------------------------
 
@@ -230,51 +230,48 @@
         // "teste_exato": 
         // [
         // {
-          // "ID": 
-          // "43360",
-          // "TITLE": 
-          // "LEAD KINBOX Nethison Rocha"
+        // "ID": 
+        // "43360",
+        // "TITLE": 
+        // "LEAD KINBOX Nethison Rocha"
         // }
         // ]
         // },
         if (jsonResponse.res_webhook === false) {
-           msgDiv.innerHTML = '⚠️ <b>Atenção:</b> O campo de orçamento precisa ser preenchido!';
-           msgDiv.className = 'warning';
-           // Reativa os botões após 4 segundos para a pessoa tentar de novo
-           resetarBotoesComDelay(4000);
-           return; // Para a execução aqui
+          msgDiv.innerHTML = '⚠️ <b>Atenção:</b> O campo de orçamento precisa ser preenchido!';
+          msgDiv.className = 'warning';
+          // Reativa os botões após 4 segundos para a pessoa tentar de novo
+          resetarBotoesComDelay(4000);
+          return; // Para a execução aqui
         }
 
-        if (res.ok) {
-          if (acao === 'criar') {
-            if (result.lead_exists) {
-              const linkLead = result.lead_id ? `${bitrixBaseUrl}${result.lead_id}/` : '#';
-              msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
-              msgDiv.className = 'warning';
-              resetarBotoesComDelay(6000);
-            } else {
-              msgDiv.innerText = '✅ Lead criado com sucesso!';
-              msgDiv.className = 'success';
-              resetarBotoesComDelay(3000);
-            }
-
-          } else if (acao === 'negocio') {
-            msgDiv.innerText = '🚀 Convertido em Negócio!';
+        if (acao === 'criar') {
+          // Verifica se o lead existe no JSON de retorno
+          if (jsonResponse.lead_exists) {
+            const linkLead = jsonResponse.lead_id ? `${bitrixBaseUrl}${jsonResponse.lead_id}/` : '#';
+            msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
+            msgDiv.className = 'warning';
+            resetarBotoesComDelay(6000);
+          } else {
+            msgDiv.innerText = '✅ Lead criado com sucesso!';
             msgDiv.className = 'success';
             resetarBotoesComDelay(3000);
-          } else {
-            msgDiv.innerText = '🗑️ Lead marcado como Junk!';
-            msgDiv.className = 'error';
-            resetarBotoesComDelay(3000);
           }
+
+        } else if (acao === 'negocio') {
+          msgDiv.innerText = '🚀 Convertido em Negócio!';
+          msgDiv.className = 'success';
+          resetarBotoesComDelay(3000);
+
         } else {
-          throw new Error('Erro no servidor: ' + textResponse);
+          msgDiv.innerText = '🗑️ Lead marcado como Junk!';
+          msgDiv.className = 'error'; // Usei error para ficar vermelho (visual de junk)
+          resetarBotoesComDelay(3000);
         }
 
       } catch (error) {
-        console.error("ERRO COMPLETO:", error);
-        // Mostra uma mensagem mais útil
-        msgDiv.innerText = '❌ Falha: Verifique o Console (F12)';
+        console.error("ERRO FETCH:", error);
+        msgDiv.innerText = '❌ Erro de conexão. Verifique o console.';
         msgDiv.className = 'error';
         resetarBotoesComDelay(5000);
       }
