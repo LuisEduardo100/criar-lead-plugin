@@ -214,8 +214,12 @@
           body: JSON.stringify(payload)
         });
 
+      if (!response.ok) {
+        throw new Error("Erro na resposta")
+      }
+      
         const res = await response.json()
-        console.log(res)
+       console.log("Resposta n8n:", jsonResponse)
 
         // -------------------------------------------------------------
 
@@ -233,6 +237,14 @@
         // }
         // ]
         // },
+        if (jsonResponse.res_webhook === false) {
+           msgDiv.innerHTML = '⚠️ <b>Atenção:</b> O campo de orçamento precisa ser preenchido!';
+           msgDiv.className = 'warning';
+           // Reativa os botões após 4 segundos para a pessoa tentar de novo
+           resetarBotoesComDelay(4000);
+           return; // Para a execução aqui
+        }
+
         if (res.ok) {
           if (acao === 'criar') {
             if (result.lead_exists) {
