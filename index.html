@@ -219,15 +219,15 @@
         console.log("Resposta Bruta do n8n:", textResponse);
 
         if (!textResponse) {
-             throw new Error("O n8n retornou uma resposta VAZIA. Verifique se há um nó 'Respond to Webhook'.");
+          throw new Error("O n8n retornou uma resposta VAZIA. Verifique se há um nó 'Respond to Webhook'.");
         }
 
         // 2. TENTAR CONVERTER PARA JSON
         let jsonResponse;
         try {
-            jsonResponse = JSON.parse(textResponse);
+          jsonResponse = JSON.parse(textResponse);
         } catch (e) {
-            throw new Error("O n8n retornou texto, mas não é JSON: " + textResponse);
+          throw new Error("O n8n retornou texto, mas não é JSON: " + textResponse);
         }
 
         if (!response.ok) {
@@ -237,10 +237,21 @@
         // -------------------------------------------------------------
 
         if (jsonResponse.res_webhook === false) {
-          msgDiv.innerHTML = '⚠️ <b>Atenção:</b> O campo tipo de orçamento deve ser preenchido!';
+          let msgErro = '⚠️ <b>Atenção:</b> Preencha os campos obrigatórios!';
+
+          // Se o n8n mandou a lista de campos que faltam, mostramos eles:
+          if (jsonResponse.campos_faltantes && jsonResponse.campos_faltantes.length > 0) {
+            // Formata a lista (ex: "cidade, origem")
+            const lista = jsonResponse.campos_faltantes.join(", ");
+            msgErro += `<br><span style="font-size:11px">Faltou: <b>${lista}</b></span>`;
+          } else if (jsonResponse.tipo_classificado === "tip_orc_vazio") {
+            msgErro += `<br><span style="font-size:11px">Selecione o Tipo de Orçamento.</span>`;
+          }
+
+          msgDiv.innerHTML = msgErro;
           msgDiv.className = 'warning';
-          resetarBotoesComDelay(4000);
-          return; 
+          resetarBotoesComDelay(5000);
+          return;
         }
 
         if (acao === 'criar') {
@@ -262,7 +273,7 @@
 
         } else {
           msgDiv.innerText = '🗑️ Lead marcado como Junk!';
-          msgDiv.className = 'error'; 
+          msgDiv.className = 'error';
           resetarBotoesComDelay(3000);
         }
 
