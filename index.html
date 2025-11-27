@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <script type="text/javascript" src="https://andrody.github.io/kinbox-lib/kinboxjs.js"></script>
-  
+
   <style>
-    body { margin: 0; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: transparent; }
+    body {
+      margin: 0;
+      padding: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: transparent;
+    }
 
     /* Classe base para botões */
     .btn {
@@ -17,31 +23,89 @@
       width: 100%;
       cursor: pointer;
       transition: background-color 0.2s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       margin-bottom: 10px;
     }
-    .btn:disabled { background-color: #b0c4de; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
+
+    .btn:disabled {
+      background-color: #b0c4de;
+      cursor: not-allowed;
+      box-shadow: none;
+      opacity: 0.7;
+    }
 
     /* Cores Específicas */
-    .btn-criar { background-color: #2684ff; color: #ffffff; } /* Azul */
-    .btn-criar:hover { background-color: #1a6fd8; }
+    .btn-criar {
+      background-color: #2684ff;
+      color: #ffffff;
+    }
 
-    .btn-negocio { background-color: #28a745; color: #ffffff; } /* Verde Sucesso */
-    .btn-negocio:hover { background-color: #218838; }
+    /* Azul */
+    .btn-criar:hover {
+      background-color: #1a6fd8;
+    }
 
-    .btn-junk { background-color: #dc3545; color: #ffffff; } /* Vermelho Perigo */
-    .btn-junk:hover { background-color: #c82333; }
+    .btn-negocio {
+      background-color: #28a745;
+      color: #ffffff;
+    }
 
-    #status-msg { margin-top: 10px; font-size: 13px; text-align: center; font-weight: 500; min-height: 18px; line-height: 1.4; }
-    #status-msg a { text-decoration: underline; font-weight: bold; cursor: pointer; }
-    
-    .success { color: #28a745; }
-    .error { color: #dc3545; }
-    .warning { color: #d39e00; } /* Amarelo Escuro para alertas */
-    .info { color: #6c757d; font-size: 11px; text-align: center; margin-bottom: 5px; }
+    /* Verde Sucesso */
+    .btn-negocio:hover {
+      background-color: #218838;
+    }
+
+    .btn-junk {
+      background-color: #dc3545;
+      color: #ffffff;
+    }
+
+    /* Vermelho Perigo */
+    .btn-junk:hover {
+      background-color: #c82333;
+    }
+
+    #status-msg {
+      margin-top: 10px;
+      font-size: 13px;
+      text-align: center;
+      font-weight: 500;
+      min-height: 18px;
+      line-height: 1.4;
+    }
+
+    #status-msg a {
+      text-decoration: underline;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .success {
+      color: #28a745;
+    }
+
+    .error {
+      color: #dc3545;
+    }
+
+    .warning {
+      color: #d39e00;
+    }
+
+    /* Amarelo Escuro para alertas */
+    .info {
+      color: #6c757d;
+      font-size: 11px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
+
 <body>
 
   <div id="info-msg" class="info">Carregando...</div>
@@ -57,155 +121,170 @@
   <button id="btn-junk-lead" class="btn btn-junk" onclick="enviarParaN8NParaDescartar()" disabled>
     🗑️ Descartar (Junk)
   </button>
-  
+
   <div id="status-msg"></div>
 
-<script>
-  // --- CONFIGURAÇÃO ---
-  const webhookParaCriar = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
-  const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
-  const bitrixBaseUrl = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/'; // URL Base do seu Bitrix
-  
-  var rawConversationData = null;
+  <script>
+    // --- CONFIGURAÇÃO ---
+    const webhookParaCriar = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
+    const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
+    const bitrixBaseUrl = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/'; // URL Base do seu Bitrix
 
-  // --- SDK KINBOX ---
-  Kinbox.on("conversation", function (data) {
-    rawConversationData = data;
-    atualizarEstadoBotoes(true, data);
-  });
+    var rawConversationData = null;
 
-  Kinbox.on("no_conversation", function (data) {
-    rawConversationData = null;
-    atualizarEstadoBotoes(false, null);
-  });
+    // --- SDK KINBOX ---
+    Kinbox.on("conversation", function (data) {
+      rawConversationData = data;
+      atualizarEstadoBotoes(true, data);
+    });
 
-  function atualizarEstadoBotoes(ativo, data) {
-    const btnCriar = document.getElementById("btn-criar-lead");
-    const btnNegocio = document.getElementById("btn-negocio-lead");
-    const btnJunk = document.getElementById("btn-junk-lead");
-    const info = document.getElementById("info-msg");
-    const msgDiv = document.getElementById("status-msg");
+    Kinbox.on("no_conversation", function (data) {
+      rawConversationData = null;
+      atualizarEstadoBotoes(false, null);
+    });
 
-    if (ativo && data && data.contact) {
+    function atualizarEstadoBotoes(ativo, data) {
+      const btnCriar = document.getElementById("btn-criar-lead");
+      const btnNegocio = document.getElementById("btn-negocio-lead");
+      const btnJunk = document.getElementById("btn-junk-lead");
+      const info = document.getElementById("info-msg");
+      const msgDiv = document.getElementById("status-msg");
+
+      if (ativo && data && data.contact) {
         btnCriar.disabled = false;
         btnNegocio.disabled = false;
         btnJunk.disabled = false;
-        
+
         btnCriar.innerHTML = "✅ Criar Lead no Bitrix";
         btnNegocio.innerHTML = "🚀 Converter em Negócio";
         btnJunk.innerHTML = "🗑️ Descartar (Junk)";
         info.innerText = "";
         // Não limpamos msgDiv aqui para não sumir mensagens importantes de resposta
-    } else {
+      } else {
         btnCriar.disabled = true;
         btnNegocio.disabled = true;
         btnJunk.disabled = true;
         info.innerText = "Selecione uma conversa";
+      }
     }
-  }
 
-  // --- FUNÇÕES DE DISPARO ---
-  async function enviarParaN8NParaCriar() {
-    if (!rawConversationData) return;
-    executarEnvio('criar');
-  }
+    // --- FUNÇÕES DE DISPARO ---
+    async function enviarParaN8NParaCriar() {
+      if (!rawConversationData) return;
+      executarEnvio('criar');
+    }
 
-  async function enviarParaN8NParaNegocio() {
-    if (!rawConversationData) return;
-    executarEnvio('negocio');
-  }
+    async function enviarParaN8NParaNegocio() {
+      if (!rawConversationData) return;
+      executarEnvio('negocio');
+    }
 
-  async function enviarParaN8NParaDescartar() {
-    if (!rawConversationData) return;
-    executarEnvio('descartar');
-  }
+    async function enviarParaN8NParaDescartar() {
+      if (!rawConversationData) return;
+      executarEnvio('descartar');
+    }
 
-  // --- FUNÇÃO GENÉRICA DE ENVIO ---
-  async function executarEnvio(acao) {
-    const btnCriar = document.getElementById('btn-criar-lead');
-    const btnNegocio = document.getElementById('btn-negocio-lead');
-    const btnJunk = document.getElementById('btn-junk-lead');
-    const msgDiv = document.getElementById('status-msg');
+    // --- FUNÇÃO GENÉRICA DE ENVIO ---
+    async function executarEnvio(acao) {
+      const btnCriar = document.getElementById('btn-criar-lead');
+      const btnNegocio = document.getElementById('btn-negocio-lead');
+      const btnJunk = document.getElementById('btn-junk-lead');
+      const msgDiv = document.getElementById('status-msg');
 
-    const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
-    
-    // Bloqueia
-    btnCriar.disabled = true;
-    btnNegocio.disabled = true;
-    btnJunk.disabled = true;
+      const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
 
-    msgDiv.innerText = 'Processando...';
-    msgDiv.className = '';
+      // Bloqueia
+      btnCriar.disabled = true;
+      btnNegocio.disabled = true;
+      btnJunk.disabled = true;
 
-    const payload = {
+      msgDiv.innerText = 'Processando...';
+      msgDiv.className = '';
+
+      const payload = {
         body: rawConversationData,
         origin: "plugin_sysled_buttons",
-        action: acao 
-    };
+        action: acao
+      };
 
-    try {
-      const response = await fetch(urlAlvo, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const textResponse = await response.text();
-      let result;
-      
       try {
+        const response = await fetch(urlAlvo, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const res = response.json()
+        const textResponse = await response.text();
+        let result;
+
+        try {
           result = JSON.parse(textResponse);
-      } catch (e) {
+        } catch (e) {
           console.error("Erro ao converter resposta do n8n em JSON:", textResponse);
           throw new Error("O n8n não retornou um JSON válido. Verifique o console.");
-      }
-      // -------------------------------------------------------------
+        }
+        // -------------------------------------------------------------
 
-      if (response.ok) {
-        if (acao === 'criar') {
-            
+        // "result": 
+        // {
+        // "result": 
+        // {
+        // "teste_exato": 
+        // [
+        // {
+          // "ID": 
+          // "43360",
+          // "TITLE": 
+          // "LEAD KINBOX Nethison Rocha"
+        // }
+        // ]
+        // },
+        if (res.ok) {
+          if (acao === 'criar') {
             if (result.lead_exists) {
-                const linkLead = result.lead_id ? `${bitrixBaseUrl}${result.lead_id}/` : '#';
-                msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
-                msgDiv.className = 'warning';
-                resetarBotoesComDelay(10000); 
+              const linkLead = result.lead_id ? `${bitrixBaseUrl}${result.lead_id}/` : '#';
+              msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
+              msgDiv.className = 'warning';
+              resetarBotoesComDelay(6000);
             } else {
-                msgDiv.innerText = '✅ Lead criado com sucesso!';
-                msgDiv.className = 'success';
-                resetarBotoesComDelay(3000);
+              msgDiv.innerText = '✅ Lead criado com sucesso!';
+              msgDiv.className = 'success';
+              resetarBotoesComDelay(3000);
             }
 
-        } else if (acao === 'negocio') {
+          } else if (acao === 'negocio') {
             msgDiv.innerText = '🚀 Convertido em Negócio!';
             msgDiv.className = 'success';
             resetarBotoesComDelay(3000);
-        } else {
+          } else {
             msgDiv.innerText = '🗑️ Lead marcado como Junk!';
             msgDiv.className = 'error';
             resetarBotoesComDelay(3000);
+          }
+        } else {
+          throw new Error('Erro no servidor: ' + textResponse);
         }
-      } else {
-        throw new Error('Erro no servidor: ' + textResponse);
+
+      } catch (error) {
+        console.error("ERRO COMPLETO:", error);
+        // Mostra uma mensagem mais útil
+        msgDiv.innerText = '❌ Falha: Verifique o Console (F12)';
+        msgDiv.className = 'error';
+        resetarBotoesComDelay(5000);
       }
-
-    } catch (error) {
-      console.error("ERRO COMPLETO:", error);
-      // Mostra uma mensagem mais útil
-      msgDiv.innerText = '❌ Falha: Verifique o Console (F12)';
-      msgDiv.className = 'error';
-      resetarBotoesComDelay(5000);
     }
-  }
 
-  function resetarBotoesComDelay(tempo) {
+    function resetarBotoesComDelay(tempo) {
       setTimeout(() => {
         if (rawConversationData) {
-            atualizarEstadoBotoes(true, rawConversationData);
-            document.getElementById('status-msg').innerText = ''; // Limpa msg
+          atualizarEstadoBotoes(true, rawConversationData);
+          document.getElementById('status-msg').innerText = ''; // Limpa msg
         }
       }, tempo);
-  }
-</script>
+    }
+  </script>
 
 </body>
+
 </html>
