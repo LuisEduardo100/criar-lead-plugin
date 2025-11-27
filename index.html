@@ -214,16 +214,8 @@
           body: JSON.stringify(payload)
         });
 
-        const res = response.json()
-        const textResponse = await response.text();
-        let result;
+        const res = await response.json()
 
-        try {
-          result = JSON.parse(textResponse);
-        } catch (e) {
-          console.error("Erro ao converter resposta do n8n em JSON:", textResponse);
-          throw new Error("O n8n não retornou um JSON válido. Verifique o console.");
-        }
         // -------------------------------------------------------------
 
         // "result": 
