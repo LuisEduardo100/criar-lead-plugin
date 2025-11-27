@@ -214,39 +214,36 @@
           body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-          throw new Error("Erro na resposta")
+        // 1. LER COMO TEXTO PRIMEIRO (Para não dar erro de JSON inválido)
+        const textResponse = await response.text();
+        console.log("Resposta Bruta do n8n:", textResponse);
+
+        if (!textResponse) {
+             throw new Error("O n8n retornou uma resposta VAZIA. Verifique se há um nó 'Respond to Webhook'.");
         }
 
-        const jsonResponse = await response.json()
-        console.log("Resposta n8n:", jsonResponse)
+        // 2. TENTAR CONVERTER PARA JSON
+        let jsonResponse;
+        try {
+            jsonResponse = JSON.parse(textResponse);
+        } catch (e) {
+            throw new Error("O n8n retornou texto, mas não é JSON: " + textResponse);
+        }
+
+        if (!response.ok) {
+          throw new Error("Erro HTTP: " + response.status);
+        }
 
         // -------------------------------------------------------------
 
-        // "result": 
-        // {
-        // "result": 
-        // {
-        // "teste_exato": 
-        // [
-        // {
-        // "ID": 
-        // "43360",
-        // "TITLE": 
-        // "LEAD KINBOX Nethison Rocha"
-        // }
-        // ]
-        // },
         if (jsonResponse.res_webhook === false) {
-          msgDiv.innerHTML = '⚠️ <b>Atenção:</b> O campo de orçamento precisa ser preenchido!';
+          msgDiv.innerHTML = '⚠️ <b>Atenção:</b> O campo tipo de orçamento deve ser preenchido!';
           msgDiv.className = 'warning';
-          // Reativa os botões após 4 segundos para a pessoa tentar de novo
           resetarBotoesComDelay(4000);
-          return; // Para a execução aqui
+          return; 
         }
 
         if (acao === 'criar') {
-          // Verifica se o lead existe no JSON de retorno
           if (jsonResponse.lead_exists) {
             const linkLead = jsonResponse.lead_id ? `${bitrixBaseUrl}${jsonResponse.lead_id}/` : '#';
             msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
@@ -265,15 +262,16 @@
 
         } else {
           msgDiv.innerText = '🗑️ Lead marcado como Junk!';
-          msgDiv.className = 'error'; // Usei error para ficar vermelho (visual de junk)
+          msgDiv.className = 'error'; 
           resetarBotoesComDelay(3000);
         }
 
       } catch (error) {
         console.error("ERRO FETCH:", error);
-        msgDiv.innerText = '❌ Erro de conexão. Verifique o console.';
+        // Mostra o erro real na tela para facilitar sua vida
+        msgDiv.innerText = '❌ Erro: ' + error.message;
         msgDiv.className = 'error';
-        resetarBotoesComDelay(5000);
+        resetarBotoesComDelay(6000);
       }
     }
 
