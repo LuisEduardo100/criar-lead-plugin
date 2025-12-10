@@ -127,8 +127,8 @@
   <script>
     // --- CONFIGURAÇÃO ---
     const webhookParaCriar = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
-    const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
-    const bitrixBaseUrl = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/'; // URL Base do seu Bitrix
+    const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275'; // Usado para Converter/Descartar
+    const bitrixBaseUrl = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/';
 
     var rawConversationData = null;
 
@@ -148,7 +148,6 @@
       const btnNegocio = document.getElementById("btn-negocio-lead");
       const btnJunk = document.getElementById("btn-junk-lead");
       const info = document.getElementById("info-msg");
-      const msgDiv = document.getElementById("status-msg");
 
       if (ativo && data && data.contact) {
         btnCriar.disabled = false;
@@ -159,7 +158,6 @@
         btnNegocio.innerHTML = "🚀 Converter em Negócio";
         btnJunk.innerHTML = "🗑️ Descartar (Junk)";
         info.innerText = "";
-        // Não limpamos msgDiv aqui para não sumir mensagens importantes de resposta
       } else {
         btnCriar.disabled = true;
         btnNegocio.disabled = true;
@@ -190,10 +188,12 @@
       const btnNegocio = document.getElementById('btn-negocio-lead');
       const btnJunk = document.getElementById('btn-junk-lead');
       const msgDiv = document.getElementById('status-msg');
+      const delayToEnable = 2000
 
+      // Define qual webhook chamar
       const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
 
-      // Bloqueia
+      // Bloqueia botões
       btnCriar.disabled = true;
       btnNegocio.disabled = true;
       btnJunk.disabled = true;
@@ -214,83 +214,79 @@
           body: JSON.stringify(payload)
         });
 
-        // 1. LER COMO TEXTO PRIMEIRO (Para não dar erro de JSON inválido)
         const textResponse = await response.text();
-        console.log("Resposta Bruta do n8n:", textResponse);
+        console.log("Resposta N8N:", textResponse);
 
-        if (!textResponse) {
-          throw new Error("O n8n retornou uma resposta VAZIA. Verifique se há um nó 'Respond to Webhook'.");
-        }
+        if (!textResponse) throw new Error("Resposta vazia do n8n.");
 
-        // 2. TENTAR CONVERTER PARA JSON
         let jsonResponse;
         try {
           jsonResponse = JSON.parse(textResponse);
         } catch (e) {
-          throw new Error("O n8n retornou texto, mas não é JSON: " + textResponse);
+          throw new Error("Resposta não é JSON válido.");
         }
 
-        if (!response.ok) {
-          throw new Error("Erro HTTP: " + response.status);
-        }
+        if (!response.ok) throw new Error("Erro HTTP: " + response.status);
 
-        // -------------------------------------------------------------
+        // --- LÓGICA DE RESPOSTA ---
 
+        // 1. Erro de Validação (Campos Faltando)
         if (jsonResponse.res_webhook === false) {
-          let msgErro = '⚠️ <b>Atenção:</b> Preencha os campos obrigatórios!';
-
-          // Se o n8n mandou a lista de campos que faltam, mostramos eles:
+          let msgErro = '⚠️ <b>Faltam dados:</b>';
           if (jsonResponse.campos_faltantes && jsonResponse.campos_faltantes.length > 0) {
-            // Formata a lista (ex: "cidade, origem")
-            const lista = jsonResponse.campos_faltantes.join(", ");
-            msgErro += `<br><span style="font-size:11px">Faltou: <b>${lista}</b></span>`;
+            msgErro += `<br><span style="font-size:11px">${jsonResponse.campos_faltantes.join(", ")}</span>`;
           } else if (jsonResponse.tipo_classificado === "tip_orc_vazio") {
-            msgErro += `<br><span style="font-size:11px">Selecione o Tipo de Orçamento.</span>`;
+            msgErro += `<br><span style="font-size:11px">Preencha o Tipo de Orçamento</span>`;
           }
-
-          msgDiv.innerHTML = msgErro;
-          msgDiv.className = 'warning';
-          resetarBotoesComDelay(5000);
+          exibirMensagem(msgErro, 'warning', 5000);
           return;
         }
 
+        // 2. Lógica para CRIAÇÃO/ATUALIZAÇÃO DE LEAD
         if (acao === 'criar') {
+          const linkLead = jsonResponse.lead_id ? `${bitrixBaseUrl}${jsonResponse.lead_id}/` : '#';
+
           if (jsonResponse.lead_exists) {
-            const linkLead = jsonResponse.lead_id ? `${bitrixBaseUrl}${jsonResponse.lead_id}/` : '#';
-            msgDiv.innerHTML = `⚠️ Lead já existe!<br><a href="${linkLead}" target="_blank" style="color: #d39e00;">Abrir no Bitrix ↗</a>`;
-            msgDiv.className = 'warning';
-            resetarBotoesComDelay(6000);
+            if (jsonResponse.was_updated) {
+              // CASO 1: Lead existia mas foi VINCULADO com sucesso (Verde)
+              exibirMensagem(`🔄 Lead Atualizado e Vinculado!<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'success', delayToEnable);
+            } else {
+              // CASO 2: Lead existe e não precisou mudar nada (Amarelo)
+              exibirMensagem(`⚠️ Lead já cadastrado.<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
+            }
           } else {
-            msgDiv.innerText = '✅ Lead criado com sucesso!';
-            msgDiv.className = 'success';
-            resetarBotoesComDelay(3000);
+            // CASO 3: Lead Novo Criado (Verde)
+            exibirMensagem(`✅ Lead Criado: ID ${jsonResponse.lead_id}<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'success', delayToEnable);
           }
 
+          // 3. Lógica para NEGÓCIO
         } else if (acao === 'negocio') {
-          msgDiv.innerText = '🚀 Convertido em Negócio!';
-          msgDiv.className = 'success';
-          resetarBotoesComDelay(3000);
+          const linkDeal = jsonResponse.deal_id ? `https://atacadaoled.bitrix24.com.br/crm/deal/details/${jsonResponse.deal_id}/` : '#';
+          exibirMensagem(`🚀 Negócio Criado!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'success', delayToEnable);
 
+          // 4. Lógica para JUNK
         } else {
-          msgDiv.innerText = '🗑️ Lead marcado como Junk!';
-          msgDiv.className = 'error';
-          resetarBotoesComDelay(3000);
+          exibirMensagem('🗑️ Lead enviado para Junk!', 'error', delayToEnable);
         }
 
       } catch (error) {
-        console.error("ERRO FETCH:", error);
-        // Mostra o erro real na tela para facilitar sua vida
-        msgDiv.innerText = '❌ Erro: ' + error.message;
-        msgDiv.className = 'error';
-        resetarBotoesComDelay(6000);
+        console.error("ERRO:", error);
+        exibirMensagem('❌ Erro: ' + error.message, 'error', delayToEnable);
       }
+    }
+
+    function exibirMensagem(html, classe, delay) {
+      const msgDiv = document.getElementById('status-msg');
+      msgDiv.innerHTML = html;
+      msgDiv.className = classe;
+      resetarBotoesComDelay(delay);
     }
 
     function resetarBotoesComDelay(tempo) {
       setTimeout(() => {
         if (rawConversationData) {
           atualizarEstadoBotoes(true, rawConversationData);
-          document.getElementById('status-msg').innerText = ''; // Limpa msg
+          document.getElementById('status-msg').innerText = '';
         }
       }, tempo);
     }
