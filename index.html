@@ -183,23 +183,28 @@
       executarEnvio('descartar');
     }
 
-    // --- FUNÇÃO GENÉRICA DE ENVIO ---
+    var isProcessing = false; 
+
     async function executarEnvio(acao) {
+      if (isProcessing) return; // Trava de segurança extra
+      isProcessing = true;
+
       const btnCriar = document.getElementById('btn-criar-lead');
       const btnNegocio = document.getElementById('btn-negocio-lead');
       const btnJunk = document.getElementById('btn-junk-lead');
       const msgDiv = document.getElementById('status-msg');
-      const delayToEnable = 3500
+      const delayToEnable = 3500;
 
       // Define qual webhook chamar
       const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
 
-      // Bloqueia botões
+      // Bloqueia botões visualmente
       btnCriar.disabled = true;
       btnNegocio.disabled = true;
       btnJunk.disabled = true;
-
-      msgDiv.innerText = 'Processando...';
+      
+      // Feedback visual imediato
+      msgDiv.innerHTML = '<span style="color:#666">⏳ Comunicando com Bitrix...</span>';
       msgDiv.className = '';
 
       const payload = {
@@ -209,70 +214,74 @@
       };
 
       try {
+        // Timeout de segurança (opcional, para não ficar carregando pra sempre se o n8n morrer)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos limite
+
         const response = await fetch(urlAlvo, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         const textResponse = await response.text();
         console.log("Resposta N8N:", textResponse);
-
-        if (!textResponse) throw new Error("Resposta vazia do n8n.");
 
         let jsonResponse;
         try {
           jsonResponse = JSON.parse(textResponse);
         } catch (e) {
-          throw new Error("Resposta não é JSON válido.");
+          throw new Error("N8N retornou algo que não é JSON: " + textResponse);
         }
 
         if (!response.ok) throw new Error("Erro HTTP: " + response.status);
 
-        // --- LÓGICA DE RESPOSTA ---
-
-        // 1. Erro de Validação (Campos Faltando)
-        if (jsonResponse.res_webhook === false) {
-          let msgErro = '⚠️ <b>Faltam dados:</b>';
-          if (jsonResponse.campos_faltantes && jsonResponse.campos_faltantes.length > 0) {
-            msgErro += `<br><span style="font-size:11px">${jsonResponse.campos_faltantes.join(", ")}</span>`;
-          } else if (jsonResponse.tipo_classificado === "tip_orc_vazio") {
-            msgErro += `<br><span style="font-size:11px">Preencha o Tipo de Orçamento</span>`;
-          }
-          exibirMensagem(msgErro, 'warning', 5000);
-          return;
+        // --- LÓGICA DE RESPOSTA ATUALIZADA ---
+        
+        // Validação de erro explícito do n8n
+        if (jsonResponse.error) {
+             throw new Error(jsonResponse.message || "Erro desconhecido no fluxo.");
         }
 
-        // 2. Lógica para CRIAÇÃO/ATUALIZAÇÃO DE LEAD
+        // Lógica para CRIAÇÃO (Baseado na sua mudança recente)
         if (acao === 'criar') {
-          const linkLead = jsonResponse.lead_id ? `${bitrixBaseUrl}${jsonResponse.lead_id}/` : '#';
+          // O n8n deve retornar { lead_id: 123, lead_exists: true/false }
+          const idBitrix = jsonResponse.lead_id || jsonResponse.ID || jsonResponse.id; // Tenta várias chaves
+          const linkLead = idBitrix ? `${bitrixBaseUrl}${idBitrix}/` : '#';
 
           if (jsonResponse.lead_exists) {
-            if (jsonResponse.was_updated) {
-              // CASO 1: Lead existia mas foi VINCULADO com sucesso (Verde)
-              exibirMensagem(`🔄 Lead Atualizado e Vinculado!<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'success', delayToEnable);
-            } else {
-              // CASO 2: Lead existe e não precisou mudar nada (Amarelo)
-              exibirMensagem(`⚠️ Lead já cadastrado.<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
-            }
+              exibirMensagem(`⚠️ Lead já existe (ID: ${idBitrix}).<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
           } else {
-            // CASO 3: Lead Novo Criado (Verde)
-            exibirMensagem(`✅ Lead Criado: ID ${jsonResponse.lead_id}<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'success', delayToEnable);
+              exibirMensagem(`✅ Lead Criado: ID ${idBitrix}<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'success', delayToEnable);
           }
 
-          // 3. Lógica para NEGÓCIO
         } else if (acao === 'negocio') {
-          const linkDeal = jsonResponse.deal_id ? `https://atacadaoled.bitrix24.com.br/crm/deal/details/${jsonResponse.deal_id}/` : '#';
-          exibirMensagem(`🚀 Negócio Criado!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'success', delayToEnable);
+          // O n8n deve retornar { deal_id: 123 }
+          const idDeal = jsonResponse.deal_id || jsonResponse.dealId || jsonResponse.id;
+          const linkDeal = idDeal ? `https://atacadaoled.bitrix24.com.br/crm/deal/details/${idDeal}/` : '#';
+          
+          if(jsonResponse.already_converted) {
+             exibirMensagem(`⚠️ Já era um negócio!<br><a href="${linkDeal}" >Abrir Negócio ↗</a>`, 'warning', delayToEnable);
+          } else {
+             exibirMensagem(`🚀 Negócio Criado!<br><a href="${linkDeal}" >Abrir Negócio ↗</a>`, 'success', delayToEnable);
+          }
 
-          // 4. Lógica para JUNK
         } else {
           exibirMensagem('🗑️ Lead enviado para Junk!', 'error', delayToEnable);
         }
 
       } catch (error) {
         console.error("ERRO:", error);
-        exibirMensagem('❌ Erro: ' + error.message, 'error', delayToEnable);
+        // Se for erro de timeout
+        if (error.name === 'AbortError') {
+            exibirMensagem('⚠️ Demorou muito, mas verifique o Bitrix.', 'warning', delayToEnable);
+        } else {
+            exibirMensagem('❌ Erro: ' + error.message, 'error', delayToEnable);
+        }
+      } finally {
+        isProcessing = false; // Libera para nova tentativa APÓS tudo terminar
       }
     }
 
