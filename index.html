@@ -13,7 +13,7 @@
       background: transparent;
     }
 
-    /* Classe base para botões */
+    /* --- ESTILOS DOS BOTÕES --- */
     .btn {
       border: none;
       border-radius: 6px;
@@ -38,35 +38,16 @@
       opacity: 0.7;
     }
 
-    /* Cores Específicas */
-    .btn-criar {
-      background-color: #2684ff;
-      color: #ffffff;
-    }
+    .btn-criar { background-color: #2684ff; color: #ffffff; }
+    .btn-criar:hover { background-color: #1a6fd8; }
 
-    .btn-criar:hover {
-      background-color: #1a6fd8;
-    }
+    .btn-negocio { background-color: #28a745; color: #ffffff; }
+    .btn-negocio:hover { background-color: #218838; }
 
-    .btn-negocio {
-      background-color: #28a745;
-      color: #ffffff;
-    }
+    .btn-junk { margin-top: 80px; background-color: #dc3545; color: #ffffff; }
+    .btn-junk:hover { background-color: #c82333; }
 
-    .btn-negocio:hover {
-      background-color: #218838;
-    }
-
-    .btn-junk {
-      margin-top: 80px;
-      background-color: #dc3545;
-      color: #ffffff;
-    }
-
-    .btn-junk:hover {
-      background-color: #c82333;
-    }
-
+    /* --- ESTILOS DE STATUS --- */
     #status-msg {
       margin-top: 10px;
       font-size: 13px;
@@ -75,31 +56,86 @@
       min-height: 18px;
       line-height: 1.4;
     }
+    #status-msg a { text-decoration: underline; font-weight: bold; cursor: pointer; }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+    .warning { color: #d39e00; }
+    .info { color: #6c757d; font-size: 11px; text-align: center; margin-bottom: 5px; }
 
-    #status-msg a {
-      text-decoration: underline;
-      font-weight: bold;
-      cursor: pointer;
+    /* --- ESTILOS DO POPUP (MODAL) --- */
+    .modal-overlay {
+      display: none; /* Escondido por padrão */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.3s;
     }
 
-    .success {
-      color: #28a745;
-    }
-
-    .error {
-      color: #dc3545;
-    }
-
-    .warning {
-      color: #d39e00;
-    }
-
-    .info {
-      color: #6c757d;
-      font-size: 11px;
+    .modal-content {
+      background-color: #fff;
+      padding: 25px 20px;
+      border-radius: 12px;
+      width: 85%;
+      max-width: 320px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      position: relative;
       text-align: center;
-      margin-bottom: 5px;
+      animation: slideUp 0.3s;
     }
+
+    .close-x {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #aaa;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .close-x:hover { color: #000; }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #28a745;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .modal-lead-name {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 20px;
+      display: block;
+      font-weight: 500;
+    }
+
+    .btn-modal-crm {
+      display: inline-block;
+      background-color: #3bc8f5; /* Azul Bitrix */
+      color: white;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 30px;
+      font-weight: bold;
+      font-size: 14px;
+      width: 70%;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .btn-modal-crm:hover { background-color: #0fafdb; transform: translateY(-1px); }
+
+    /* Animações */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+
   </style>
 </head>
 
@@ -120,6 +156,20 @@
   </button>
 
   <div id="status-msg"></div>
+
+  <div id="modal-sucesso" class="modal-overlay" onclick="fecharModalSeClicarFora(event)">
+    <div class="modal-content">
+      <span class="close-x" onclick="fecharModal()">&times;</span>
+      
+      <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+      <span class="modal-title">Lead Criado!</span>
+      <span id="modal-lead-nome" class="modal-lead-name">Carregando nome...</span>
+      
+      <a id="modal-btn-link" href="#" target="_blank" class="btn-modal-crm">
+        Abrir no CRM ↗
+      </a>
+    </div>
+  </div>
 
   <script>
     // --- CONFIGURAÇÃO ---
@@ -179,6 +229,24 @@
       executarEnvio('descartar');
     }
 
+    // --- LÓGICA DO POPUP (MODAL) ---
+    function abrirModal(nome, link) {
+      document.getElementById('modal-lead-nome').innerText = nome;
+      document.getElementById('modal-btn-link').href = link;
+      document.getElementById('modal-sucesso').style.display = 'flex';
+    }
+
+    function fecharModal() {
+      document.getElementById('modal-sucesso').style.display = 'none';
+      document.getElementById('status-msg').innerText = ''; // Limpa msg de fundo
+    }
+
+    function fecharModalSeClicarFora(event) {
+      if (event.target.id === 'modal-sucesso') {
+        fecharModal();
+      }
+    }
+
     var isProcessing = false;
 
     async function executarEnvio(acao) {
@@ -209,6 +277,7 @@
 
       try {
         const controller = new AbortController();
+        // AUMENTADO PARA 60 SEGUNDOS (60000)
         const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         const response = await fetch(urlAlvo, {
@@ -231,49 +300,39 @@
 
         if (!response.ok) throw new Error("Erro HTTP: " + response.status);
 
-        // ============================================================
-        // [NOVO] BLINDAGEM DE CAMPOS FALTANTES E ERROS LÓGICOS
-        // ============================================================
-        
-        // 1. Verifica se o n8n retornou explicitamente 'res_webhook: false'
-        // Isso acontece quando o Switch do n8n identifica campos vazios.
+        // --- BLINDAGEM DE ERROS ---
         if (jsonResponse.res_webhook === false) {
-            
             let msgErro = '⚠️ <b>Atenção - Faltam Dados:</b><br>';
-            
             if (jsonResponse.campos_faltantes && Array.isArray(jsonResponse.campos_faltantes) && jsonResponse.campos_faltantes.length > 0) {
-                // Formata a lista para ficar legível (ex: classificacao_da_obra, valor_total)
-                const camposFormatados = jsonResponse.campos_faltantes.join(", ");
-                msgErro += `<span style="font-size:12px; color:#d63384;">${camposFormatados}</span>`;
+                msgErro += `<span style="font-size:12px; color:#d63384;">${jsonResponse.campos_faltantes.join(", ")}</span>`;
             } else if (jsonResponse.tipo_classificado) {
-                // Caso não venha o array, mas venha o tipo do erro
                 msgErro += `<span style="font-size:12px">${jsonResponse.tipo_classificado}</span>`;
             } else {
                 msgErro += "Verifique os campos obrigatórios no CRM.";
             }
-
-            // Exibe a mensagem amarela (warning) e PARA a execução aqui.
             exibirMensagem(msgErro, 'warning', 6000);
             return; 
         }
 
-        // 2. Validação de erro genérico
         if (jsonResponse.error) {
            throw new Error(jsonResponse.message || "Erro desconhecido no fluxo.");
         }
 
-        // ============================================================
-        // FLUXO NORMAL (SUCESSO)
-        // ============================================================
-
+        // --- SUCESSO ---
         if (acao === 'criar') {
-          const idBitrix = jsonResponse.lead_id || jsonResponse.ID || jsonResponse.id;
-          const linkLead = idBitrix ? `${bitrixBaseUrl}${idBitrix}/` : '#';
+          const idBitrix = jsonResponse.lead_id || jsonResponse.ID;
+          const nomeLead = jsonResponse.lead_name || "Cliente"; // Campo vindo do seu JSON N8N
+          const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : `${bitrixBaseUrl}${idBitrix}/`;
 
           if (jsonResponse.lead_exists) {
+              // Se já existe, mantemos o aviso padrão
               exibirMensagem(`⚠️ Lead já existe.<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
           } else {
-              exibirMensagem(`✅ Lead Criado: ID ${idBitrix}<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'success', delayToEnable);
+              // [NOVO] Se criou novo, abre o POPUP
+              abrirModal(nomeLead, linkLead);
+              
+              // Reseta os botões no fundo (silenciosamente) para quando fechar o modal
+              exibirMensagem('✅ Sucesso!', 'success', 100);
           }
 
         } else if (acao === 'negocio') {
@@ -313,7 +372,10 @@
       setTimeout(() => {
         if (rawConversationData) {
           atualizarEstadoBotoes(true, rawConversationData);
-          document.getElementById('status-msg').innerText = '';
+          // Só limpa a mensagem se o modal NÃO estiver aberto. Se estiver, deixa limpo.
+          if (document.getElementById('modal-sucesso').style.display !== 'flex') {
+             document.getElementById('status-msg').innerText = '';
+          }
         }
       }, tempo);
     }
