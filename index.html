@@ -101,6 +101,12 @@
     }
     .close-x:hover { color: #000; }
 
+    .modal-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
     .modal-title {
       font-size: 18px;
       font-weight: bold;
@@ -161,9 +167,10 @@
     <div class="modal-content">
       <span class="close-x" onclick="fecharModal()">&times;</span>
       
-      <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
-      <span class="modal-title">Lead Criado!</span>
-      <span id="modal-lead-nome" class="modal-lead-name">Carregando nome...</span>
+      <span id="modal-icon" class="modal-icon">✅</span>
+      <span id="modal-title" class="modal-title">Lead Criado!</span>
+      
+      <span id="modal-lead-nome" class="modal-lead-name">Carregando...</span>
       
       <a id="modal-btn-link" href="#" target="_blank" class="btn-modal-crm">
         Abrir no CRM ↗
@@ -175,7 +182,8 @@
     // --- CONFIGURAÇÃO ---
     const webhookParaCriar = 'https://webhookrota.aled1.com/webhook/9aaa9ced-dad3-4674-b0a8-b28601ce989a';
     const webhookParaAtualizar = 'https://webhookrota.aled1.com/webhook/e012b659-b9d3-48dd-b8d5-4af9c9cc6275';
-    const bitrixBaseUrl = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/';
+    const bitrixBaseUrlLead = 'https://atacadaoled.bitrix24.com.br/crm/lead/details/';
+    const bitrixBaseUrlDeal = 'https://atacadaoled.bitrix24.com.br/crm/deal/details/';
 
     var rawConversationData = null;
 
@@ -214,23 +222,14 @@
     }
 
     // --- FUNÇÕES DE DISPARO ---
-    async function enviarParaN8NParaCriar() {
-      if (!rawConversationData) return;
-      executarEnvio('criar');
-    }
+    async function enviarParaN8NParaCriar() { if (!rawConversationData) return; executarEnvio('criar'); }
+    async function enviarParaN8NParaNegocio() { if (!rawConversationData) return; executarEnvio('negocio'); }
+    async function enviarParaN8NParaDescartar() { if (!rawConversationData) return; executarEnvio('descartar'); }
 
-    async function enviarParaN8NParaNegocio() {
-      if (!rawConversationData) return;
-      executarEnvio('negocio');
-    }
-
-    async function enviarParaN8NParaDescartar() {
-      if (!rawConversationData) return;
-      executarEnvio('descartar');
-    }
-
-    // --- LÓGICA DO POPUP (MODAL) ---
-    function abrirModal(nome, link) {
+    // --- LÓGICA DO POPUP (MODAL) DINÂMICO ---
+    function abrirModal(titulo, icone, nome, link) {
+      document.getElementById('modal-title').innerText = titulo;
+      document.getElementById('modal-icon').innerText = icone;
       document.getElementById('modal-lead-nome').innerText = nome;
       document.getElementById('modal-btn-link').href = link;
       document.getElementById('modal-sucesso').style.display = 'flex';
@@ -238,13 +237,11 @@
 
     function fecharModal() {
       document.getElementById('modal-sucesso').style.display = 'none';
-      document.getElementById('status-msg').innerText = ''; // Limpa msg de fundo
+      document.getElementById('status-msg').innerText = ''; 
     }
 
     function fecharModalSeClicarFora(event) {
-      if (event.target.id === 'modal-sucesso') {
-        fecharModal();
-      }
+      if (event.target.id === 'modal-sucesso') { fecharModal(); }
     }
 
     var isProcessing = false;
@@ -257,7 +254,6 @@
       const btnNegocio = document.getElementById('btn-negocio-lead');
       const btnJunk = document.getElementById('btn-junk-lead');
       const msgDiv = document.getElementById('status-msg');
-      const delayToEnable = 3500;
 
       const urlAlvo = acao === 'criar' ? webhookParaCriar : webhookParaAtualizar;
 
@@ -266,7 +262,7 @@
       btnNegocio.disabled = true;
       btnJunk.disabled = true;
       
-      msgDiv.innerHTML = '<span style="color:#666">⏳ Validando dados no Bitrix...</span>';
+      msgDiv.innerHTML = '<span style="color:#666">⏳ Processando...</span>';
       msgDiv.className = '';
 
       const payload = {
@@ -277,8 +273,7 @@
 
       try {
         const controller = new AbortController();
-        // AUMENTADO PARA 60 SEGUNDOS (60000)
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
         const response = await fetch(urlAlvo, {
           method: 'POST',
@@ -289,73 +284,66 @@
         clearTimeout(timeoutId);
 
         const textResponse = await response.text();
-        console.log("Resposta N8N:", textResponse);
-
         let jsonResponse;
         try {
           jsonResponse = JSON.parse(textResponse);
         } catch (e) {
-          throw new Error("N8N retornou algo que não é JSON válido.");
+          throw new Error("Resposta inválida do servidor.");
         }
 
         if (!response.ok) throw new Error("Erro HTTP: " + response.status);
 
         // --- BLINDAGEM DE ERROS ---
         if (jsonResponse.res_webhook === false) {
-            let msgErro = '⚠️ <b>Atenção - Faltam Dados:</b><br>';
-            if (jsonResponse.campos_faltantes && Array.isArray(jsonResponse.campos_faltantes) && jsonResponse.campos_faltantes.length > 0) {
-                msgErro += `<span style="font-size:12px; color:#d63384;">${jsonResponse.campos_faltantes.join(", ")}</span>`;
-            } else if (jsonResponse.tipo_classificado) {
-                msgErro += `<span style="font-size:12px">${jsonResponse.tipo_classificado}</span>`;
-            } else {
-                msgErro += "Verifique os campos obrigatórios no CRM.";
-            }
-            exibirMensagem(msgErro, 'warning', 6000);
-            return; 
+             let msgErro = '⚠️ Dados Faltantes: ';
+             if (jsonResponse.campos_faltantes) msgErro += jsonResponse.campos_faltantes.join(", ");
+             else if (jsonResponse.tipo_classificado) msgErro += jsonResponse.tipo_classificado;
+             exibirMensagem(msgErro, 'warning', 6000);
+             return; 
         }
 
-        if (jsonResponse.error) {
-           throw new Error(jsonResponse.message || "Erro desconhecido no fluxo.");
-        }
+        if (jsonResponse.error) throw new Error(jsonResponse.message || "Erro desconhecido.");
 
-        // --- SUCESSO ---
+        // =======================================================
+        // LÓGICA DE SUCESSO UNIFICADA COM POPUP
+        // =======================================================
+
         if (acao === 'criar') {
+          // --- Lógica Criar Lead ---
           const idBitrix = jsonResponse.lead_id || jsonResponse.ID;
-          const nomeLead = jsonResponse.lead_name || "Cliente"; // Campo vindo do seu JSON N8N
-          const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : `${bitrixBaseUrl}${idBitrix}/`;
-
+          const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : `${bitrixBaseUrlLead}${idBitrix}/`;
+          
           if (jsonResponse.lead_exists) {
-              // Se já existe, mantemos o aviso padrão
               exibirMensagem(`⚠️ Lead já existe.<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
           } else {
-              // [NOVO] Se criou novo, abre o POPUP
-              abrirModal(nomeLead, linkLead);
-              
-              // Reseta os botões no fundo (silenciosamente) para quando fechar o modal
+              // POPUP VERDE
+              abrirModal("Lead Criado!", "✅", jsonResponse.lead_name || "Cliente", linkLead);
               exibirMensagem('✅ Sucesso!', 'success', 100);
           }
 
         } else if (acao === 'negocio') {
+          // --- Lógica Criar Negócio (NOVO) ---
           const idDeal = jsonResponse.deal_id || jsonResponse.dealId || jsonResponse.id;
-          const linkDeal = idDeal ? `https://atacadaoled.bitrix24.com.br/crm/deal/details/${idDeal}/` : '#';
-          
+          // Tenta pegar o link vindo do n8n, senão monta manual
+          const linkDeal = jsonResponse.deal_link ? jsonResponse.deal_link : `${bitrixBaseUrlDeal}${idDeal}/`;
+          const nomeNegocio = jsonResponse.deal_title || "Negócio Convertido";
+
           if(jsonResponse.already_converted) {
-              exibirMensagem(`⚠️ Já era um negócio!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'warning', delayToEnable);
+              exibirMensagem(`⚠️ Já era Negócio!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'warning', 4000);
           } else {
-              exibirMensagem(`🚀 Negócio Criado!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'success', delayToEnable);
+              // POPUP DE FOGUETE
+              abrirModal("Negócio Criado!", "🚀", nomeNegocio, linkDeal);
+              exibirMensagem('🚀 Sucesso!', 'success', 100);
           }
 
         } else {
-          exibirMensagem('🗑️ Lead enviado para Junk!', 'error', delayToEnable);
+          exibirMensagem('🗑️ Lead enviado para Junk!', 'error', 3500);
         }
 
       } catch (error) {
         console.error("ERRO:", error);
-        if (error.name === 'AbortError') {
-            exibirMensagem('⚠️ Demorou muito, verifique o Bitrix manualmente.', 'warning', delayToEnable);
-        } else {
-            exibirMensagem('❌ ' + error.message, 'error', delayToEnable);
-        }
+        const msg = error.name === 'AbortError' ? '⚠️ Demorou muito, verifique o Bitrix.' : '❌ ' + error.message;
+        exibirMensagem(msg, 'warning', 4000);
       } finally {
         isProcessing = false;
       }
@@ -372,7 +360,6 @@
       setTimeout(() => {
         if (rawConversationData) {
           atualizarEstadoBotoes(true, rawConversationData);
-          // Só limpa a mensagem se o modal NÃO estiver aberto. Se estiver, deixa limpo.
           if (document.getElementById('modal-sucesso').style.display !== 'flex') {
              document.getElementById('status-msg').innerText = '';
           }
