@@ -13,7 +13,7 @@
       background: transparent;
     }
 
-    /* --- ESTILOS DOS BOTÕES --- */
+    /* --- ESTILOS DOS BOTÕES PRINCIPAIS --- */
     .btn {
       border: none;
       border-radius: 6px;
@@ -110,12 +110,13 @@
     .modal-title {
       font-size: 18px;
       font-weight: bold;
-      color: #28a745;
       margin-bottom: 5px;
       display: block;
     }
+    .text-success { color: #28a745; }
+    .text-error { color: #dc3545; }
 
-    .modal-lead-name {
+    .modal-desc {
       font-size: 15px;
       color: #555;
       margin-bottom: 20px;
@@ -123,9 +124,10 @@
       font-weight: 500;
     }
 
+    /* Botão de Sucesso (Abrir CRM) */
     .btn-modal-crm {
       display: inline-block;
-      background-color: #3bc8f5; /* Azul Bitrix */
+      background-color: #3bc8f5;
       color: white;
       text-decoration: none;
       padding: 12px 20px;
@@ -137,6 +139,31 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .btn-modal-crm:hover { background-color: #0fafdb; transform: translateY(-1px); }
+
+    /* Botão de Erro (Fechar) */
+    .btn-modal-close {
+      background-color: #6c757d;
+      cursor: pointer;
+    }
+    .btn-modal-close:hover { background-color: #5a6268; }
+
+    /* Tags de Erro */
+    .erro-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .tag-erro {
+      background-color: #ffe6e6;
+      color: #d63384;
+      border: 1px solid #f1aeb5;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
 
     /* Animações */
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -168,13 +195,24 @@
       <span class="close-x" onclick="fecharModal()">&times;</span>
       
       <span id="modal-icon" class="modal-icon">✅</span>
-      <span id="modal-title" class="modal-title">Lead Criado!</span>
+      <span id="modal-title" class="modal-title text-success">Título</span>
       
-      <span id="modal-lead-nome" class="modal-lead-name">Carregando...</span>
-      
-      <a id="modal-btn-link" href="#" target="_blank" class="btn-modal-crm">
-        Abrir no CRM ↗
-      </a>
+      <div id="content-success" style="display:none;">
+        <span id="modal-lead-nome" class="modal-desc">Nome do Lead</span>
+        <a id="modal-btn-link" href="#" target="_blank" class="btn-modal-crm">
+          Abrir no CRM ↗
+        </a>
+      </div>
+
+      <div id="content-error" style="display:none;">
+        <p style="font-size:13px; color:#666; margin:0 0 10px 0;">Os seguintes campos são obrigatórios:</p>
+        <div id="lista-erros" class="erro-container">
+           </div>
+        <button onclick="fecharModal()" class="btn-modal-crm btn-modal-close">
+          Entendi, vou corrigir
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -226,12 +264,54 @@
     async function enviarParaN8NParaNegocio() { if (!rawConversationData) return; executarEnvio('negocio'); }
     async function enviarParaN8NParaDescartar() { if (!rawConversationData) return; executarEnvio('descartar'); }
 
-    // --- LÓGICA DO POPUP (MODAL) DINÂMICO ---
-    function abrirModal(titulo, icone, nome, link) {
+    // --- LÓGICA DO POPUP (MODAL) ---
+    
+    // MODO SUCESSO
+    function abrirModalSucesso(titulo, icone, nome, link) {
+      // Configura textos
       document.getElementById('modal-title').innerText = titulo;
+      document.getElementById('modal-title').className = "modal-title text-success";
       document.getElementById('modal-icon').innerText = icone;
       document.getElementById('modal-lead-nome').innerText = nome;
       document.getElementById('modal-btn-link').href = link;
+
+      // Alterna visibilidade
+      document.getElementById('content-success').style.display = 'block';
+      document.getElementById('content-error').style.display = 'none';
+
+      // Abre
+      document.getElementById('modal-sucesso').style.display = 'flex';
+    }
+
+    // MODO ERRO (Dados Faltantes)
+    function abrirModalErro(listaCampos) {
+      // Configura textos
+      document.getElementById('modal-title').innerText = "Dados Faltantes!";
+      document.getElementById('modal-title').className = "modal-title text-error";
+      document.getElementById('modal-icon').innerText = "⚠️";
+
+      // Gera as tags
+      const container = document.getElementById('lista-erros');
+      container.innerHTML = ""; // Limpa anterior
+      
+      if (listaCampos && listaCampos.length > 0) {
+        listaCampos.forEach(campo => {
+            const tag = document.createElement("span");
+            tag.className = "tag-erro";
+            // Remove underline e deixa maiúscula primeira letra (ex: nome_do_cliente -> Nome do cliente)
+            const textoFormatado = campo.replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase());
+            tag.innerText = textoFormatado;
+            container.appendChild(tag);
+        });
+      } else {
+        container.innerHTML = "<span class='tag-erro'>Campos Obrigatórios</span>";
+      }
+
+      // Alterna visibilidade
+      document.getElementById('content-success').style.display = 'none';
+      document.getElementById('content-error').style.display = 'block';
+
+      // Abre
       document.getElementById('modal-sucesso').style.display = 'flex';
     }
 
@@ -273,7 +353,7 @@
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         const response = await fetch(urlAlvo, {
           method: 'POST',
@@ -293,46 +373,49 @@
 
         if (!response.ok) throw new Error("Erro HTTP: " + response.status);
 
-        // --- BLINDAGEM DE ERROS ---
+        // =======================================================
+        // TRATAMENTO DE ERROS / DADOS FALTANTES (MODAL)
+        // =======================================================
         if (jsonResponse.res_webhook === false) {
-             let msgErro = '⚠️ Dados Faltantes: ';
-             if (jsonResponse.campos_faltantes) msgErro += jsonResponse.campos_faltantes.join(", ");
-             else if (jsonResponse.tipo_classificado) msgErro += jsonResponse.tipo_classificado;
-             exibirMensagem(msgErro, 'warning', 6000);
-             return; 
+             // Se vier lista de campos faltantes, mostra o modal de erro
+             if (jsonResponse.campos_faltantes && Array.isArray(jsonResponse.campos_faltantes) && jsonResponse.campos_faltantes.length > 0) {
+                 abrirModalErro(jsonResponse.campos_faltantes);
+             } 
+             // Se for outro tipo de erro classificado
+             else if (jsonResponse.tipo_classificado) {
+                 exibirMensagem(`⚠️ ${jsonResponse.tipo_classificado}`, 'warning', 6000);
+             } else {
+                 exibirMensagem("⚠️ Verifique os campos obrigatórios.", 'warning', 6000);
+             }
+             return; // Para a execução
         }
 
         if (jsonResponse.error) throw new Error(jsonResponse.message || "Erro desconhecido.");
 
         // =======================================================
-        // LÓGICA DE SUCESSO UNIFICADA COM POPUP
+        // SUCESSO (MODAL VERDE / FOGUETE)
         // =======================================================
 
         if (acao === 'criar') {
-          // --- Lógica Criar Lead ---
           const idBitrix = jsonResponse.lead_id || jsonResponse.ID;
           const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : `${bitrixBaseUrlLead}${idBitrix}/`;
           
           if (jsonResponse.lead_exists) {
               exibirMensagem(`⚠️ Lead já existe.<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
           } else {
-              // POPUP VERDE
-              abrirModal("Lead Criado!", "✅", jsonResponse.lead_name || "Cliente", linkLead);
+              abrirModalSucesso("Lead Criado!", "✅", jsonResponse.lead_name || "Cliente", linkLead);
               exibirMensagem('✅ Sucesso!', 'success', 100);
           }
 
         } else if (acao === 'negocio') {
-          // --- Lógica Criar Negócio (NOVO) ---
           const idDeal = jsonResponse.deal_id || jsonResponse.dealId || jsonResponse.id;
-          // Tenta pegar o link vindo do n8n, senão monta manual
           const linkDeal = jsonResponse.deal_link ? jsonResponse.deal_link : `${bitrixBaseUrlDeal}${idDeal}/`;
           const nomeNegocio = jsonResponse.deal_title || "Negócio Convertido";
 
           if(jsonResponse.already_converted) {
               exibirMensagem(`⚠️ Já era Negócio!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'warning', 4000);
           } else {
-              // POPUP DE FOGUETE
-              abrirModal("Negócio Criado!", "🚀", nomeNegocio, linkDeal);
+              abrirModalSucesso("Negócio Criado!", "🚀", nomeNegocio, linkDeal);
               exibirMensagem('🚀 Sucesso!', 'success', 100);
           }
 
