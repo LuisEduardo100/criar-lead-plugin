@@ -450,7 +450,7 @@
       } catch (error) {
         console.error("ERRO:", error);
         const msg = error.name === 'AbortError' ? '⚠️ Demorou muito, verifique o Bitrix.' : '❌ ' + error.message;
-        exibirMensagem(msg, 'warning', 4000);
+        exibirMensagem(msg, 'warning', 2000);
       } finally {
         isProcessing = false;
       }
