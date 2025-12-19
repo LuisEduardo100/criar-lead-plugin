@@ -420,7 +420,22 @@
           }
 
         } else {
-          exibirMensagem('🗑️ Lead enviado para Junk!', 'error', 3500);
+          // 2. Se deu certo (res_webhook: true), prepara os dados para o Modal
+          // Tenta pegar o ID do lead da resposta para montar o link
+          const idBitrix = jsonResponse.lead_id || jsonResponse.ID; 
+          // Se não vier link pronto, monta com a URL base
+          const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : (idBitrix ? `${bitrixBaseUrlLead}${idBitrix}/` : '#');
+          const nomeLead = jsonResponse.lead_name || "Lead";
+
+          // 3. Abre o Modal de Sucesso
+          abrirModalSucesso("Lead Descartado!", "🗑️", nomeLead, linkLead);
+
+          // TRUQUE VISUAL: Troca a cor do título para Vermelho (padrão de erro/alerta) para diferenciar do sucesso verde
+          const modalTitle = document.getElementById('modal-title');
+          modalTitle.className = "modal-title text-error"; // Usa a classe vermelha do CSS existente
+          
+          // Exibe mensagem rápida no rodapé também
+          exibirMensagem('🗑️ Lead enviado para Junk!', 'error', 100);
         }
 
       } catch (error) {
