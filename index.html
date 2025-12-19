@@ -38,14 +38,33 @@
       opacity: 0.7;
     }
 
-    .btn-criar { background-color: #2684ff; color: #ffffff; }
-    .btn-criar:hover { background-color: #1a6fd8; }
+    .btn-criar {
+      background-color: #2684ff;
+      color: #ffffff;
+    }
 
-    .btn-negocio { background-color: #28a745; color: #ffffff; }
-    .btn-negocio:hover { background-color: #218838; }
+    .btn-criar:hover {
+      background-color: #1a6fd8;
+    }
 
-    .btn-junk { margin-top: 80px; background-color: #dc3545; color: #ffffff; }
-    .btn-junk:hover { background-color: #c82333; }
+    .btn-negocio {
+      background-color: #28a745;
+      color: #ffffff;
+    }
+
+    .btn-negocio:hover {
+      background-color: #218838;
+    }
+
+    .btn-junk {
+      margin-top: 80px;
+      background-color: #dc3545;
+      color: #ffffff;
+    }
+
+    .btn-junk:hover {
+      background-color: #c82333;
+    }
 
     /* --- ESTILOS DE STATUS --- */
     #status-msg {
@@ -56,15 +75,36 @@
       min-height: 18px;
       line-height: 1.4;
     }
-    #status-msg a { text-decoration: underline; font-weight: bold; cursor: pointer; }
-    .success { color: #28a745; }
-    .error { color: #dc3545; }
-    .warning { color: #d39e00; }
-    .info { color: #6c757d; font-size: 11px; text-align: center; margin-bottom: 5px; }
+
+    #status-msg a {
+      text-decoration: underline;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .success {
+      color: #28a745;
+    }
+
+    .error {
+      color: #dc3545;
+    }
+
+    .warning {
+      color: #d39e00;
+    }
+
+    .info {
+      color: #6c757d;
+      font-size: 11px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
 
     /* --- ESTILOS DO POPUP (MODAL) --- */
     .modal-overlay {
-      display: none; /* Escondido por padrão */
+      display: none;
+      /* Escondido por padrão */
       position: fixed;
       top: 0;
       left: 0;
@@ -99,7 +139,10 @@
       cursor: pointer;
       line-height: 1;
     }
-    .close-x:hover { color: #000; }
+
+    .close-x:hover {
+      color: #000;
+    }
 
     .modal-icon {
       font-size: 40px;
@@ -113,8 +156,14 @@
       margin-bottom: 5px;
       display: block;
     }
-    .text-success { color: #28a745; }
-    .text-error { color: #dc3545; }
+
+    .text-success {
+      color: #28a745;
+    }
+
+    .text-error {
+      color: #dc3545;
+    }
 
     .modal-desc {
       font-size: 15px;
@@ -136,16 +185,23 @@
       font-size: 14px;
       width: 70%;
       transition: background 0.2s, transform 0.1s;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
-    .btn-modal-crm:hover { background-color: #0fafdb; transform: translateY(-1px); }
+
+    .btn-modal-crm:hover {
+      background-color: #0fafdb;
+      transform: translateY(-1px);
+    }
 
     /* Botão de Erro (Fechar) */
     .btn-modal-close {
       background-color: #6c757d;
       cursor: pointer;
     }
-    .btn-modal-close:hover { background-color: #5a6268; }
+
+    .btn-modal-close:hover {
+      background-color: #5a6268;
+    }
 
     /* Tags de Erro */
     .erro-container {
@@ -155,6 +211,7 @@
       gap: 6px;
       margin-bottom: 20px;
     }
+
     .tag-erro {
       background-color: #ffe6e6;
       color: #d63384;
@@ -166,9 +223,25 @@
     }
 
     /* Animações */
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
 
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+      }
+
+      to {
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 
@@ -193,10 +266,10 @@
   <div id="modal-sucesso" class="modal-overlay" onclick="fecharModalSeClicarFora(event)">
     <div class="modal-content">
       <span class="close-x" onclick="fecharModal()">&times;</span>
-      
+
       <span id="modal-icon" class="modal-icon">✅</span>
       <span id="modal-title" class="modal-title text-success">Título</span>
-      
+
       <div id="content-success" style="display:none;">
         <span id="modal-lead-nome" class="modal-desc">Nome do Lead</span>
         <a id="modal-btn-link" href="#" target="_blank" class="btn-modal-crm">
@@ -207,7 +280,7 @@
       <div id="content-error" style="display:none;">
         <p style="font-size:13px; color:#666; margin:0 0 10px 0;">Os seguintes campos são obrigatórios:</p>
         <div id="lista-erros" class="erro-container">
-           </div>
+        </div>
         <button onclick="fecharModal()" class="btn-modal-crm btn-modal-close">
           Entendi, vou corrigir
         </button>
@@ -265,7 +338,7 @@
     async function enviarParaN8NParaDescartar() { if (!rawConversationData) return; executarEnvio('descartar'); }
 
     // --- LÓGICA DO POPUP (MODAL) ---
-    
+
     // MODO SUCESSO
     function abrirModalSucesso(titulo, icone, nome, link) {
       // Configura textos
@@ -293,15 +366,15 @@
       // Gera as tags
       const container = document.getElementById('lista-erros');
       container.innerHTML = ""; // Limpa anterior
-      
+
       if (listaCampos && listaCampos.length > 0) {
         listaCampos.forEach(campo => {
-            const tag = document.createElement("span");
-            tag.className = "tag-erro";
-            // Remove underline e deixa maiúscula primeira letra (ex: nome_do_cliente -> Nome do cliente)
-            const textoFormatado = campo.replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase());
-            tag.innerText = textoFormatado;
-            container.appendChild(tag);
+          const tag = document.createElement("span");
+          tag.className = "tag-erro";
+          // Remove underline e deixa maiúscula primeira letra (ex: nome_do_cliente -> Nome do cliente)
+          const textoFormatado = campo.replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase());
+          tag.innerText = textoFormatado;
+          container.appendChild(tag);
         });
       } else {
         container.innerHTML = "<span class='tag-erro'>Campos Obrigatórios</span>";
@@ -317,7 +390,7 @@
 
     function fecharModal() {
       document.getElementById('modal-sucesso').style.display = 'none';
-      document.getElementById('status-msg').innerText = ''; 
+      document.getElementById('status-msg').innerText = '';
     }
 
     function fecharModalSeClicarFora(event) {
@@ -341,7 +414,7 @@
       btnCriar.disabled = true;
       btnNegocio.disabled = true;
       btnJunk.disabled = true;
-      
+
       msgDiv.innerHTML = '<span style="color:#666">⏳ Processando...</span>';
       msgDiv.className = '';
 
@@ -377,17 +450,17 @@
         // TRATAMENTO DE ERROS / DADOS FALTANTES (MODAL)
         // =======================================================
         if (jsonResponse.res_webhook === false) {
-             // Se vier lista de campos faltantes, mostra o modal de erro
-             if (jsonResponse.campos_faltantes && Array.isArray(jsonResponse.campos_faltantes) && jsonResponse.campos_faltantes.length > 0) {
-                 abrirModalErro(jsonResponse.campos_faltantes);
-             } 
-             // Se for outro tipo de erro classificado
-             else if (jsonResponse.tipo_classificado) {
-                 exibirMensagem(`⚠️ ${jsonResponse.tipo_classificado}`, 'warning', 6000);
-             } else {
-                 exibirMensagem("⚠️ Verifique os campos obrigatórios.", 'warning', 6000);
-             }
-             return; // Para a execução
+          // Se vier lista de campos faltantes, mostra o modal de erro
+          if (jsonResponse.campos_faltantes && Array.isArray(jsonResponse.campos_faltantes) && jsonResponse.campos_faltantes.length > 0) {
+            abrirModalErro(jsonResponse.campos_faltantes);
+          }
+          // Se for outro tipo de erro classificado
+          else if (jsonResponse.tipo_classificado) {
+            exibirMensagem(`⚠️ ${jsonResponse.tipo_classificado}`, 'warning', 6000);
+          } else {
+            exibirMensagem("⚠️ Verifique os campos obrigatórios.", 'warning', 6000);
+          }
+          return; // Para a execução
         }
 
         if (jsonResponse.error) throw new Error(jsonResponse.message || "Erro desconhecido.");
@@ -399,12 +472,26 @@
         if (acao === 'criar') {
           const idBitrix = jsonResponse.lead_id || jsonResponse.ID;
           const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : `${bitrixBaseUrlLead}${idBitrix}/`;
-          
+
           if (jsonResponse.lead_exists) {
-              exibirMensagem(`⚠️ Lead já existe.<br><a href="${linkLead}" target="_blank">Abrir no Bitrix ↗</a>`, 'warning', 5000);
-          } else {
+            if (jsonResponse.lead_exists) {
+              // ALTERAÇÃO: Agora chamamos o Modal mesmo se já existir, mas mudamos o ícone e título
+              abrirModalSucesso(
+                "Lead Já Existe!",      // Título
+                "⚠️",                   // Ícone de alerta (ou use ✅ se preferir)
+                jsonResponse.lead_name || "Cliente", // Nome do cliente
+                linkLead                // Link gerado para o botão
+              );
+              // Mensagem rápida no rodapé apenas para reforçar
+              exibirMensagem('⚠️ Lead já cadastrado.', 'warning', 100);
+            } else {
+              // Lógica original para novos leads...
               abrirModalSucesso("Lead Criado!", "✅", jsonResponse.lead_name || "Cliente", linkLead);
               exibirMensagem('✅ Sucesso!', 'success', 100);
+            }
+          } else {
+            abrirModalSucesso("Lead Criado!", "✅", jsonResponse.lead_name || "Cliente", linkLead);
+            exibirMensagem('✅ Sucesso!', 'success', 100);
           }
 
         } else if (acao === 'negocio') {
@@ -412,17 +499,17 @@
           const linkDeal = jsonResponse.deal_link ? jsonResponse.deal_link : `${bitrixBaseUrlDeal}${idDeal}/`;
           const nomeNegocio = jsonResponse.deal_title || "Negócio Convertido";
 
-          if(jsonResponse.already_converted) {
-              exibirMensagem(`⚠️ Já era Negócio!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'warning', 4000);
+          if (jsonResponse.already_converted) {
+            exibirMensagem(`⚠️ Já era Negócio!<br><a href="${linkDeal}" target="_blank">Abrir Negócio ↗</a>`, 'warning', 4000);
           } else {
-              abrirModalSucesso("Negócio Criado!", "🚀", nomeNegocio, linkDeal);
-              exibirMensagem('🚀 Sucesso!', 'success', 100);
+            abrirModalSucesso("Negócio Criado!", "🚀", nomeNegocio, linkDeal);
+            exibirMensagem('🚀 Sucesso!', 'success', 100);
           }
 
         } else {
           // 2. Se deu certo (res_webhook: true), prepara os dados para o Modal
           // Tenta pegar o ID do lead da resposta para montar o link
-          const idBitrix = jsonResponse.lead_id || jsonResponse.ID; 
+          const idBitrix = jsonResponse.lead_id || jsonResponse.ID;
           // Se não vier link pronto, monta com a URL base
           const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : (idBitrix ? `${bitrixBaseUrlLead}${idBitrix}/` : '#');
           const nomeLead = jsonResponse.lead_name || "Lead";
@@ -433,7 +520,7 @@
           // TRUQUE VISUAL: Troca a cor do título para Vermelho (padrão de erro/alerta) para diferenciar do sucesso verde
           const modalTitle = document.getElementById('modal-title');
           modalTitle.className = "modal-title text-error"; // Usa a classe vermelha do CSS existente
-          
+
           // Exibe mensagem rápida no rodapé também
           exibirMensagem('🗑️ Lead enviado para Junk!', 'error', 100);
         }
@@ -459,7 +546,7 @@
         if (rawConversationData) {
           atualizarEstadoBotoes(true, rawConversationData);
           if (document.getElementById('modal-sucesso').style.display !== 'flex') {
-             document.getElementById('status-msg').innerText = '';
+            document.getElementById('status-msg').innerText = '';
           }
         }
       }, tempo);
@@ -467,4 +554,5 @@
   </script>
 
 </body>
+
 </html>
