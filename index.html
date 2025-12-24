@@ -300,8 +300,6 @@
 
     // --- SDK KINBOX ---
     Kinbox.on("conversation", function (data) {
-      console.log("🔵 DADOS BRUTOS KINBOX:", data); 
-      console.log("🔵 Campos Personalizados:", data.contact.customFields); 
       rawConversationData = data;
       atualizarEstadoBotoes(true, data);
     });
