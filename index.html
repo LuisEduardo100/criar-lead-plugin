@@ -432,7 +432,7 @@
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000); // 60s timeout no front
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 60s timeout no front
 
         const response = await fetch(urlAlvo, {
           method: 'POST',
