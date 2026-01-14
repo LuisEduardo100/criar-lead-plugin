@@ -483,10 +483,24 @@
           const idBitrix = jsonResponse.lead_id || jsonResponse.ID;
           const linkLead = jsonResponse.lead_link ? jsonResponse.lead_link : `${bitrixBaseUrlLead}${idBitrix}/`;
 
+          
           if (jsonResponse.lead_exists) {
             // LEAD JÁ EXISTE -> Modal Amarelo
             abrirModalSucesso("Lead Já Existe!", "⚠️", jsonResponse.lead_name || "Cliente", linkLead);
             exibirMensagem('⚠️ Lead já cadastrado.', 'warning', 100);
+          } else if (jsonResponse.empty_field) {
+            // --- NOVA LÓGICA DE DADOS FALTANTES ---
+            // Transforma a mensagem "preencher: NOME e ORIGEM" em array ['Nome', 'Origem']
+            let camposFaltantes = [];
+            const msgDebug = (jsonResponse.message || "").toUpperCase();
+
+            if (msgDebug.includes("NOME")) camposFaltantes.push("Nome");
+            if (msgDebug.includes("ORIGEM")) camposFaltantes.push("Origem");
+
+            // Se não identificou os campos, manda aviso genérico
+            if (camposFaltantes.length === 0) camposFaltantes.push("Verificar Campos");
+            
+            abrirModalErro(camposFaltantes);
           } else {
             // LEAD NOVO -> Modal Verde
             abrirModalSucesso("Lead Criado!", "✅", jsonResponse.lead_name || "Cliente", linkLead);
